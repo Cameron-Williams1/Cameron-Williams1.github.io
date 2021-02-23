@@ -1,3 +1,5 @@
+TESTING
+
 ---
-permalink: /README.html
+hyperlink: /README.html
 ---
