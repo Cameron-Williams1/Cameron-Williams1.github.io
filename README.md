@@ -1,5 +1,3 @@
-TESTING
-
 ---
 permalink: /README.html
 ---
