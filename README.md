@@ -1,4 +1,4 @@
 # Welcome to my website!
 
 
-(https://cameron-williams1.github.io/repo.html "My Digital Portfolio to access all of my GitHub HTML projects")
+[View all of my websites and other projects](https://cameron-williams1.github.io/repo.html")
