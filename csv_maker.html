@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CSV Maker — Terms & Definitions (Tailwind, Fixed)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: { primary: '#3b82f6' },
+        boxShadow: { soft: '0 10px 30px rgba(0,0,0,.10)' },
+        borderRadius: { '2xl':'1rem' }
+      }
+    }
+  }
+</script>
+<style>
+  .kbd{font-family:ui-monospace,Menlo,Consolas,monospace}
+</style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <div class="max-w-6xl mx-auto p-6 space-y-6">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-soft">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">CSV Maker — Terms &amp; Definitions</h1>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Two columns: <b>term, definition</b>. Header optional.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="themeToggle" class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" title="Toggle theme">
+          <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
+        <span id="rowCount" class="px-3 py-1 rounded-full text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">0 rows</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-soft">
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <span class="font-medium">Import CSV</span>
+          <input id="csvFile" type="file" accept=".csv,text/csv" class="hidden">
+        </label>
+
+        <button id="pasteBtn" class="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">Paste CSV</button>
+        <button id="addRow" class="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">Add Row</button>
+        <button id="clearAll" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">Clear</button>
+
+        <div class="ml-auto flex gap-2">
+          <button id="copyBtn" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">Copy CSV</button>
+          <button id="downloadBtn" class="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600">Download CSV</button>
+        </div>
+      </div>
+      <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Tip: Press <b>Enter</b> in the last Definition to add a row. Press <b class="kbd">⌘/Ctrl + S</b> to download.</p>
+    </div>
+
+    <!-- Paste Area -->
+    <div id="pasteAreaWrap" class="hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-soft">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-semibold">Paste CSV</h3>
+        <button id="closePaste" class="px-2 py-1 text-sm rounded-md bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600">Close</button>
+      </div>
+      <textarea id="pasteArea" class="w-full min-h-[120px] rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3" placeholder="term,definition&#10;Age of the Earth,4.6 Billion years"></textarea>
+      <div class="mt-2">
+        <button id="usePaste" class="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600">Use Pasted CSV</button>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-soft">
+      <div class="grid grid-cols-12 gap-3 text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+        <div class="col-span-1"></div>
+        <div class="col-span-5">Term</div>
+        <div class="col-span-5">Definition</div>
+        <div class="col-span-1 text-right">Actions</div>
+      </div>
+      <div id="rows" class="space-y-2"></div>
+      <div class="pt-3 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+        <span id="status">Ready</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ---------- Theme ----------
+const htmlEl=document.documentElement;
+(function initTheme(){
+  const saved=localStorage.getItem('csv_theme');
+  const prefers=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const th=saved || (prefers ? 'dark':'light');
+  htmlEl.classList.toggle('dark', th==='dark');
+})();
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const dark=htmlEl.classList.toggle('dark');
+  localStorage.setItem('csv_theme', dark?'dark':'light');
+});
+
+// ---------- Elements ----------
+const rowsEl=document.getElementById('rows');
+const statusEl=document.getElementById('status');
+const rowCount=document.getElementById('rowCount');
+const addRowBtn=document.getElementById('addRow');
+const clearAllBtn=document.getElementById('clearAll');
+const copyBtn=document.getElementById('copyBtn');
+const downloadBtn=document.getElementById('downloadBtn');
+const pasteBtn=document.getElementById('pasteBtn');
+const pasteWrap=document.getElementById('pasteAreaWrap');
+const closePaste=document.getElementById('closePaste');
+const pasteArea=document.getElementById('pasteArea');
+const usePaste=document.getElementById('usePaste');
+const csvFile=document.getElementById('csvFile');
+
+const KEY='csv_maker_terms_tailwind_v1';
+
+// ---------- Row Helpers ----------
+function esc(s){
+  return (s||'').toString().replace(/[&<>"']/g, m => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  })[m]);
+}
+function rowTemplate(term='',def=''){
+  const wrap=document.createElement('div');
+  wrap.className='grid grid-cols-12 gap-3 items-start';
+  wrap.innerHTML=`
+    <div class="col-span-1 text-gray-400 dark:text-gray-500 flex items-center justify-center select-none">⇅</div>
+    <div class="col-span-5">
+      <div class="border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+        <input class="term w-full bg-transparent p-3 outline-none" placeholder="Term" value="${esc(term)}">
+      </div>
+    </div>
+    <div class="col-span-5">
+      <div class="border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700">
+        <textarea class="def w-full bg-transparent p-3 outline-none min-h-[44px]" placeholder="Definition">${esc(def)}</textarea>
+      </div>
+    </div>
+    <div class="col-span-1 flex items-center justify-end gap-1">
+      <button class="up px-2 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" title="Move up">↑</button>
+      <button class="down px-2 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" title="Move down">↓</button>
+      <button class="remove px-2 py-2 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-red-50 dark:hover:bg-gray-700" title="Delete">✕</button>
+    </div>`;
+
+  const termEl=wrap.querySelector('.term');
+  const defEl=wrap.querySelector('.def');
+  const removeBtn=wrap.querySelector('.remove');
+  const upBtn=wrap.querySelector('.up');
+  const downBtn=wrap.querySelector('.down');
+
+  const onInput=()=> saveSoon();
+  termEl.addEventListener('input', onInput);
+  defEl.addEventListener('input', onInput);
+
+  defEl.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter' && !e.shiftKey){
+      e.preventDefault();
+      addRow();
+      focusLast();
+    }
+  });
+
+  removeBtn.addEventListener('click', ()=>{ wrap.remove(); save(); updateCount(); });
+  upBtn.addEventListener('click', ()=>{
+    const prev=wrap.previousElementSibling;
+    if(prev) rowsEl.insertBefore(wrap, prev);
+    save();
+  });
+  downBtn.addEventListener('click', ()=>{
+    const next=wrap.nextElementSibling;
+    if(next) rowsEl.insertBefore(next, wrap);
+    save();
+  });
+
+  return wrap;
+}
+
+function addRow(term='',def=''){ rowsEl.appendChild(rowTemplate(term,def)); updateCount(); }
+
+function focusLast(){
+  const defs=rowsEl.querySelectorAll('textarea.def');
+  const last=defs[defs.length-1];
+  if(last){ last.focus(); last.selectionStart=last.value.length; last.selectionEnd=last.value.length; }
+}
+
+function getRows(){
+  const out=[];
+  rowsEl.querySelectorAll('.grid').forEach(g=>{
+    const t=g.querySelector('.term').value.trim();
+    const d=g.querySelector('.def').value.trim();
+    if(t || d) out.push([t,d]);
+  });
+  return out;
+}
+function setRows(rows){
+  rowsEl.innerHTML='';
+  rows.forEach(r=> addRow(r[0]||'', r[1]||''));
+  if(rows.length===0) addRow();
+  save();
+  updateCount();
+}
+
+function updateCount(){
+  const n = getRows().filter(r=>r[0] && r[1]).length;
+  rowCount.textContent = n + (n===1 ? ' row' : ' rows');
+}
+
+// ---------- CSV Helpers ----------
+function toCSV(rows){
+  const escField=(s)=>{
+    s=(s||'').toString();
+    if(/[",\n]/.test(s)){ s='"'+s.replace(/"/g,'""')+'"'; }
+    return s;
+  };
+  const clean = rows.filter(r=>r[0] && r[1]);
+  return [['term','definition'], ...clean].map(r=> r.map(escField).join(',')).join('\n');
+}
+
+function parseCSV(text){
+  const rows=[]; let i=0, field='', row=[], inQ=false;
+  function pushField(){ row.push(field); field=''; }
+  function pushRow(){ rows.push(row); row=[]; }
+  while(i<text.length){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else { inQ=false; } }
+      else field+=c;
+    } else {
+      if(c==='"'){ inQ=true; }
+      else if(c===','){ pushField(); }
+      else if(c=== '\n'){ pushField(); pushRow(); }
+      else if(c=== '\r'){}
+      else field+=c;
+    }
+    i++;
+  }
+  if(field.length>0 || row.length>0){ pushField(); pushRow(); }
+  return rows;
+}
+function fromCSV(text){
+  const rows=parseCSV(text).filter(r=> r.some(x=> (x||'').toString().trim()!=='') );
+  if(rows.length===0) return [];
+  let start=0;
+  const h0=(rows[0][0]||'').toLowerCase(), h1=(rows[0][1]||'').toLowerCase();
+  if(h0.includes('term') || h1.includes('def')) start=1;
+  return rows.slice(start).map(r=> [r[0]||'', r[1]||''] );
+}
+
+// ---------- Save/Load ----------
+function status(msg){ statusEl.textContent = msg; clearTimeout(status._t); status._t=setTimeout(()=>{ statusEl.textContent='Ready'; },1500); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(getRows())); status('Saved'); }
+let saveTimer=null;
+function saveSoon(){ clearTimeout(saveTimer); saveTimer=setTimeout(save, 400); }
+function load(){
+  try{ const r=JSON.parse(localStorage.getItem(KEY)||'[]'); if(Array.isArray(r) && r.length){ setRows(r); return; } }catch(e){}
+  addRow();
+}
+
+// ---------- Buttons ----------
+addRowBtn.addEventListener('click', ()=>{ addRow(); focusLast(); });
+clearAllBtn.addEventListener('click', ()=>{
+  if(confirm('Clear all rows?')) setRows([]);
+});
+copyBtn.addEventListener('click', async ()=>{
+  const csv = toCSV(getRows());
+  try{ await navigator.clipboard.writeText(csv); status('CSV copied'); } catch(e){ status('Copy failed'); }
+});
+downloadBtn.addEventListener('click', ()=>{
+  const csv = toCSV(getRows());
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'deck.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  status('CSV downloaded');
+});
+pasteBtn.addEventListener('click', ()=>{
+  pasteWrap.classList.remove('hidden'); pasteArea.focus();
+});
+closePaste.addEventListener('click', ()=>{
+  pasteWrap.classList.add('hidden');
+  pasteArea.value='';
+});
+usePaste.addEventListener('click', ()=>{
+  const rows = fromCSV(pasteArea.value||'');
+  setRows(rows);
+  status('CSV loaded from paste');
+  pasteWrap.classList.add('hidden');
+  pasteArea.value='';
+});
+csvFile.addEventListener('change', (e)=>{
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const rows = fromCSV(reader.result);
+    setRows(rows);
+    status('CSV loaded from file');
+  };
+  reader.readAsText(f);
+});
+
+// ---------- Keyboard ----------
+document.addEventListener('keydown', (e)=>{
+  if((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='s'){
+    e.preventDefault();
+    downloadBtn.click();
+  }
+});
+
+// ---------- Init ----------
+load();
+</script>
+</body>
+</html>

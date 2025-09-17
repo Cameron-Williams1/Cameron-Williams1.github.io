@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Flashcards — Study Tool (Fixed)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  // Tailwind CDN allows setting config after load; we also keep it minimal.
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          primary: '#3b82f6',
+          'primary-light': '#60a5fa'
+        },
+        animation: {
+          'flip': 'flip 0.6s ease-in-out',
+          'pulse-success': 'pulseSuccess 0.5s ease-out',
+        }
+      }
+    }
+  }
+</script>
+<style>
+  .kbd{font-family:ui-monospace,Menlo,Consolas,monospace}
+  @keyframes flip { 0%{transform:rotateY(0)} 50%{transform:rotateY(90deg)} 100%{transform:rotateY(0)} }
+  @keyframes pulseSuccess { 0%{transform:scale(1)} 50%{transform:scale(1.05)} 100%{transform:scale(1)} }
+  .card-flip{ animation: flip 0.6s ease-in-out; }
+  .btn-success{ animation: pulseSuccess 0.5s ease-out; }
+</style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <div class="max-w-6xl mx-auto p-6">
+    <!-- Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-8">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">Flashcards</h1>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Active recall practice — CSV with optional media</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-3">
+        <!-- Theme Toggle -->
+        <button id="themeToggle" class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" title="Toggle theme">
+          <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
+        
+        <!-- Deck Info -->
+        <div class="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+          <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+          <span class="text-sm font-medium">Deck:</span>
+          <span id="deckName" class="text-sm font-medium">None</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Load Options -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-8 shadow-sm">
+      <div class="flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex flex-wrap gap-3">
+          <label class="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <span class="font-medium">Load CSV File</span>
+            <input id="csvFile" type="file" accept=".csv,text/csv" class="hidden">
+          </label>
+          
+          <button id="pasteBtn" class="px-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all">
+            <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            Paste CSV
+          </button>
+        </div>
+        <!-- Intentionally removed demo button per earlier request -->
+      </div>
+    </div>
+
+    <!-- CSV Paste Area (Hidden by default) -->
+    <div id="pasteArea" class="hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6 shadow-sm">
+      <div class="mb-4">
+        <h3 class="font-semibold mb-2">CSV Format</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+          Two columns: <strong>term,definition</strong>. Header optional. You can include media links (YouTube, Vimeo, images, MP4) in either field.
+        </p>
+      </div>
+      <textarea id="csvPaste" class="w-full h-32 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg p-3 resize-none" placeholder="Paste your CSV content here..."></textarea>
+      <div class="flex gap-2 mt-3">
+        <button id="loadPaste" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all">Load CSV</button>
+        <button id="cancelPaste" class="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="grid lg:grid-cols-3 gap-8">
+      <!-- Flashcard -->
+      <div class="lg:col-span-2">
+        <div id="card" class="group relative bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl min-h-[400px] cursor-pointer select-none shadow-lg hover:shadow-xl transition-all duration-300 hover:border-blue-300 dark:hover:border-blue-600">
+          <div class="absolute top-4 left-6 right-6 flex justify-between items-center">
+            <span id="sideLabel" class="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium rounded-full">Front</span>
+            <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
+              <kbd class="kbd border border-gray-300 dark:border-gray-600 rounded px-2 py-1">Space</kbd>
+              <span>to flip</span>
+            </div>
+          </div>
+          
+          <div class="flex items-center justify-center min-h-[400px] p-6 pt-16">
+            <div id="cardArea" class="w-full flex flex-col items-center gap-4 text-center">
+              <div id="cardText" class="text-3xl font-semibold">Load a deck to start studying</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nav row -->
+        <div class="mt-4 grid grid-cols-3 gap-3">
+          <button id="backBtn" class="px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-all font-medium">
+            Back
+          </button>
+          <button id="nextBtn" class="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all font-medium shadow-sm col-span-2">
+            <div class="flex items-center justify-center gap-2">
+              <span>Next Card</span>
+              <kbd class="kbd text-xs border border-blue-400 rounded px-2 py-1">→</kbd>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="space-y-6">
+        <!-- Progress -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+          <h3 class="font-semibold mb-4">Progress</h3>
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Cards Seen</span>
+              <span id="counter" class="font-medium">0 / 0</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Mastered</span>
+              <span id="masteredCount" class="font-medium text-green-600 dark:text-green-400">0</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-sm text-gray-600 dark:text-gray-400">Remaining</span>
+              <span id="remainingCount" class="font-medium text-orange-600 dark:text-orange-400">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rating Buttons -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 shadow-sm">
+          <h3 class="font-semibold mb-4">Rate Your Knowledge</h3>
+          <div class="space-y-3">
+            <button id="againBtn" class="w-full px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all font-medium">
+              <div class="flex items-center justify-between">
+                <span>Again</span>
+                <kbd class="kbd text-xs border border-red-300 dark:border-red-700 rounded px-2 py-1">1</kbd>
+              </div>
+            </button>
+            
+            <button id="goodBtn" class="w-full px-4 py-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium">
+              <div class="flex items-center justify-between">
+                <span>Good</span>
+                <kbd class="kbd text-xs border border-green-300 dark:border-green-700 rounded px-2 py-1">2</kbd>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Feedback -->
+        <div id="feedback" class="text-center text-sm font-medium opacity-0 transition-opacity duration-300"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ---------- State & Utils ----------
+let PAIRS=[],queue=[],current=null,showBack=false,box1=[],box2=[],box3=[];
+let historyStack=[]; // for Back button
+const $=(s)=>document.querySelector(s);
+
+// Theme
+const themeToggle = $('#themeToggle');
+const html = document.documentElement;
+function initTheme() {
+  const saved = localStorage.getItem('theme');
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const theme = saved || (prefersDark ? 'dark' : 'light');
+  html.classList.toggle('dark', theme === 'dark');
+}
+themeToggle.addEventListener('click', () => {
+  const isDark = html.classList.toggle('dark');
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+});
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a;}
+function normalize(s){return (s||'').toString().trim();}
+
+function feedback(msg, type = 'info'){
+  const el = $("#feedback");
+  el.textContent = msg;
+  el.className = `text-center text-sm font-medium transition-opacity duration-300 ${
+    type === 'success' ? 'text-green-600 dark:text-green-400' :
+    type === 'error' ? 'text-red-600 dark:text-red-400' :
+    'text-blue-600 dark:text-blue-400'
+  }`;
+  el.style.opacity = '1';
+  clearTimeout(feedback._t); // prevent overlap
+  feedback._t = setTimeout(() => el.style.opacity = '0', 3000);
+}
+
+// ---------- Media helpers ----------
+const urlGlobal=/\bhttps?:\/\/[^\s]+/g;
+function allURLs(s){ return (s||'').match(urlGlobal)||[]; }
+function isImage(url){ return /\.(png|jpe?g|gif|webp|svg)(\?.*)?$/i.test(url); }
+function isVideo(url){ return /\.(mp4|webm|ogg)(\?.*)?$/i.test(url); }
+function isYouTube(url){ return /(youtube\.com|youtu\.be)\//i.test(url); }
+function isVimeo(url){ return /vimeo\.com\//i.test(url); }
+function ytId(url){
+  try{
+    if(!/^https?:/i.test(url)) url="https://"+url;
+    const u=new URL(url);
+    if(u.hostname.includes("youtu.be")) return u.pathname.slice(1);
+    if(u.searchParams.get("v")) return u.searchParams.get("v");
+    const m=u.pathname.match(/\/(shorts|embed)\/([^/?]+)/);
+    return m?m[2]:null;
+  }catch(e){return null;}
+}
+function vimeoId(url){
+  try{ const u=new URL(url); const m=u.pathname.match(/\/(\d+)/); return m?m[1]:null; }catch(e){return null;}
+}
+function giphyToGif(url){
+  try{
+    const u=new URL(url);
+    if(!u.hostname.includes("giphy.com")) return null;
+    const m=u.pathname.match(/\/gifs\/[^/]*-([a-zA-Z0-9]+)/) || u.pathname.match(/\/media\/([a-zA-Z0-9]+)\//);
+    return m?`https://media.giphy.com/media/${m[1]}/giphy.gif`:null;
+  }catch(e){return null;}
+}
+function driveToDirect(url){
+  try{
+    const u=new URL(url);
+    if(!u.hostname.includes("drive.google.com")) return null;
+    const m=u.pathname.match(/\/file\/d\/([^/]+)/);
+    return m?`https://drive.google.com/uc?export=download&id=${m[1]}`:null;
+  }catch(e){return null;}
+}
+
+function renderContent(container, text){
+  container.innerHTML="";
+  const urls=allURLs(text);
+  const caption=text.replace(urlGlobal,"").trim();
+  let rendered=false;
+
+  urls.forEach(u0=>{
+    let url=u0;
+    const d1=giphyToGif(url); if(d1) url=d1;
+    const d2=driveToDirect(url); if(d2) url=d2;
+
+    if(isYouTube(url)){
+      const id=ytId(url);
+      if(id){
+        const wrap=document.createElement("div");
+        wrap.className="w-full aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm";
+        wrap.innerHTML=`<iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${id}" title="YouTube video" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;
+        container.appendChild(wrap); rendered=true;
+      }
+    } else if(isVimeo(url)){
+      const id=vimeoId(url);
+      if(id){
+        const wrap=document.createElement("div");
+        wrap.className="w-full aspect-video rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm";
+        wrap.innerHTML=`<iframe src="https://player.vimeo.com/video/${id}" class="w-full h-full" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+        container.appendChild(wrap); rendered=true;
+      }
+    } else if(isImage(url)){
+      const img=document.createElement("img");
+      img.src=url; img.alt="card image"; img.loading="lazy"; img.referrerPolicy="no-referrer";
+      img.className="max-h-80 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm";
+      img.onerror=()=>{img.replaceWith(Object.assign(document.createElement('div'),{className:'text-sm text-gray-500 dark:text-gray-400 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg',textContent:'Image could not be loaded. Try "Open media" below.'}));};
+      container.appendChild(img); rendered=true;
+    } else if(isVideo(url)){
+      const vid=document.createElement("video");
+      vid.src=url; vid.controls=true; vid.className="w-full max-h-80 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm";
+      vid.onerror=()=>{vid.replaceWith(Object.assign(document.createElement('div'),{className:'text-sm text-gray-500 dark:text-gray-400 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg',textContent:'Video could not be played. Try opening in a new tab.'}));};
+      container.appendChild(vid); rendered=true;
+    }
+  });
+
+  if(!rendered || caption){
+    const div=document.createElement("div");
+    div.className="text-3xl font-semibold whitespace-pre-wrap text-gray-900 dark:text-gray-100";
+    div.textContent = caption || text;
+    container.appendChild(div);
+  }
+
+  if(urls.length){
+    const wrap=document.createElement("div");
+    wrap.className="text-xs text-gray-500 dark:text-gray-400 mt-4 space-x-2";
+    urls.forEach(u=>{
+      const a=document.createElement("a"); a.href=u; a.textContent="Open media"; a.target="_blank"; a.rel="noreferrer noopener";
+      a.className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors mr-2";
+      wrap.appendChild(a);
+    });
+    container.appendChild(wrap);
+  }
+}
+
+// ---------- CSV Parsing (more forgiving) ----------
+function parseCSV(text){const rows=[];let i=0,f="",row=[],inQ=false;function pushF(){row.push(f);f="";}function pushR(){rows.push(row);row=[];}while(i<text.length){const c=text[i];if(inQ){if(c=='"'){if(text[i+1]=='"'){f+='"';i++;}else inQ=false;}else f+=c;}else{if(c=='"'){inQ=true;}else if(c==','){pushF();}else if(c=='\n'){pushF();pushR();}else if(c=='\r'){}else f+=c;}i++;}if(f.length>0||row.length>0){pushF();pushR();}return rows.filter(r=>r.some(x=>normalize(x)!==""));}
+function csvToPairs(text){
+  const rows=parseCSV(text);
+  if(!rows.length) return [];
+  let start=0;const h0=(rows[0][0]||"").toLowerCase(),h1=(rows[0][1]||"").toLowerCase();
+  if(h0.includes("term")||h1.includes("def")) start=1;
+  const out=[];
+  for(let r=start;r<rows.length;r++){
+    const t=normalize(rows[r][0]||"");
+    const d=normalize(rows[r][1]||"");
+    if(!t && !d) continue;
+    // If only one column is provided, treat it as term and mirror as definition
+    if(t && !d) out.push([t, t]);
+    else if(!t && d) out.push([d, d]);
+    else out.push([t,d]);
+  }
+  return out;
+}
+
+// ---------- Queue / Progress ----------
+function initQueue(){ box1=[...Array(PAIRS.length).keys()]; box2=[]; box3=[]; buildQueue(); }
+function buildQueue(){ 
+  queue=[]; 
+  const pick=(arr,n)=>{const c=shuffle(arr.slice()); for(let i=0;i<Math.min(n,c.length);i++) queue.push(c[i]);};
+  pick(box1, Math.max(6, box1.length)); 
+  pick(box2, Math.ceil(box2.length/2)); 
+  pick(box3, Math.ceil(box3.length/5)); 
+  shuffle(queue); 
+}
+function updateProgress(){ 
+  const mastered=box3.length; 
+  const left=box1.length+box2.length; 
+  $("#masteredCount").textContent=mastered;
+  $("#remainingCount").textContent=left;
+  $("#counter").textContent=`${Math.max(0,PAIRS.length-queue.length)} / ${PAIRS.length}`;
+}
+
+// ---------- Flow ----------
+function nextCard(){ 
+  if(!PAIRS.length){ 
+    $("#cardArea").innerHTML='<div id="cardText" class="text-3xl font-semibold text-gray-500 dark:text-gray-400">Load a deck to start studying</div>'; 
+    return; 
+  } 
+  if(queue.length===0){ 
+    buildQueue(); 
+    if(queue.length===0){ 
+      $("#cardArea").innerHTML='<div class="text-3xl font-semibold text-green-600 dark:text-green-400">All cards mastered!</div>'; 
+      feedback("Congratulations! You\\'ve mastered all cards!", 'success');
+      return; 
+    } 
+  } 
+  if(current !== null) historyStack.push({idx: current, side: showBack});
+  current=queue.shift(); showBack=false; render(); 
+}
+
+function prevCard(){
+  if(!historyStack.length){ feedback('No previous card'); return; }
+  const prev = historyStack.pop();
+  // Put current back to the front of queue so it's not lost
+  if(current !== null) queue.unshift(current);
+  current = prev.idx;
+  showBack = prev.side;
+  render();
+}
+
+function render(){ 
+  if(current==null) return; 
+  const [t,d]=PAIRS[current]; 
+  $("#sideLabel").textContent = showBack?"Back":"Front"; 
+  const content = showBack ? d : t; 
+  $("#card").classList.add('card-flip');
+  setTimeout(() => $("#card").classList.remove('card-flip'), 600);
+  renderContent($("#cardArea"), content); 
+  updateProgress(); 
+}
+
+function flip(){ 
+  if(current==null) return; 
+  showBack=!showBack; 
+  render(); 
+}
+
+function rate(level){ 
+  if(current==null) return; 
+  [box1,box2,box3].forEach(b=>{const i=b.indexOf(current); if(i>-1) b.splice(i,1);}); 
+  if(level===1) {
+    box1.push(current);
+    $("#againBtn").classList.add('btn-success');
+    setTimeout(() => $("#againBtn").classList.remove('btn-success'), 500);
+  } else {
+    box3.push(current);
+    $("#goodBtn").classList.add('btn-success');
+    setTimeout(() => $("#goodBtn").classList.remove('btn-success'), 500);
+  }
+  nextCard(); 
+}
+
+// ---------- Events ----------
+$("#card").addEventListener("click", flip);
+$("#nextBtn").addEventListener("click", nextCard);
+$("#backBtn").addEventListener("click", prevCard);
+$("#againBtn").addEventListener("click", ()=>rate(1));
+$("#goodBtn").addEventListener("click", ()=>rate(3));
+document.addEventListener("keydown", e=>{ 
+  if(e.key===' '){ e.preventDefault(); flip(); } 
+  else if(e.key==='ArrowRight'){ nextCard(); } 
+  else if(e.key==='ArrowLeft'){ prevCard(); }
+  else if(e.key==='1'){ rate(1); } 
+  else if(e.key==='2'){ rate(3); } 
+});
+
+// ---------- CSV Inputs ----------
+const csvFile=$("#csvFile"), pasteBtn=$("#pasteBtn"), csvPaste=$("#csvPaste"), loadPaste=$("#loadPaste"), pasteArea = $("#pasteArea"), cancelPaste = $("#cancelPaste");
+
+function setDeck(pairs,name="Custom Deck"){ 
+  PAIRS=pairs; 
+  $("#deckName").textContent=name; 
+  initQueue(); 
+  current=null; 
+  historyStack = [];
+  nextCard(); 
+  feedback(`Loaded ${PAIRS.length} cards`, 'success'); 
+  pasteArea.classList.add('hidden');
+}
+
+csvFile.addEventListener("change",e=>{ 
+  const f=e.target.files[0]; 
+  if(!f) return; 
+  const r=new FileReader(); 
+  r.onload=()=>{ 
+    const pairs=csvToPairs(r.result); 
+    if(pairs.length) setDeck(pairs, f.name.replace(/\\.[^.]+$/,"")); 
+    else feedback("Invalid CSV (need at least one non-empty term/definition)", 'error'); 
+  }; 
+  r.readAsText(f); 
+});
+
+pasteBtn.addEventListener("click", ()=>{ 
+  pasteArea.classList.remove('hidden'); 
+  csvPaste.focus(); 
+});
+
+cancelPaste.addEventListener("click", ()=>{
+  pasteArea.classList.add('hidden');
+  csvPaste.value = '';
+});
+
+loadPaste.addEventListener("click", ()=>{ 
+  const pairs=csvToPairs(csvPaste.value || ""); 
+  if(pairs.length) setDeck(pairs, "Pasted CSV"); 
+  else feedback("Invalid CSV format", 'error'); 
+});
+
+// ---------- Init ----------
+initTheme();
+render();
+</script>
+</body>
+</html>

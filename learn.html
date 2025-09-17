@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Learn — Multiple Choice (Tailwind, Fixed)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: { primary: '#3b82f6' },
+        boxShadow: { soft: '0 10px 30px rgba(0,0,0,.10)' },
+        borderRadius: { '2xl':'1rem' }
+      }
+    }
+  }
+</script>
+<style>.kbd{font-family:ui-monospace,Menlo,Consolas,monospace}</style>
+</head>
+<body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+  <div class="max-w-6xl mx-auto p-6 space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-soft">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-2xl font-bold">Learn — Multiple Choice</h1>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Choose the right answer from four options. CSV-ready.</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="themeToggle" class="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" title="Toggle theme">
+          <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+          </svg>
+        </button>
+        <span id="deckName" class="px-3 py-1 rounded-full text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">Deck: (none)</span>
+      </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 shadow-soft">
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          </svg>
+          <span class="font-medium">Import CSV</span>
+          <input id="csvFile" type="file" accept=".csv,text/csv" class="hidden">
+        </label>
+        <button id="pasteBtn" class="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">Paste CSV</button>
+        <button id="saveBtn" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">Save Deck</button>
+        <button id="clearBtn" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">Clear Saved</button>
+
+        <div class="ml-auto flex items-center gap-2">
+          <select id="mode" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+            <option value="def">Definition → choose term</option>
+            <option value="term">Term → choose definition</option>
+            <option value="mixed" selected>Mixed</option>
+          </select>
+          <button id="shuffleBtn" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">Shuffle</button>
+          <button id="reset" class="px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">Reset</button>
+        </div>
+      </div>
+
+      <div id="pasteWrap" class="hidden mt-3">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold">Paste CSV</h3>
+          <button id="closePaste" class="px-2 py-1 text-sm rounded-md bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600">Close</button>
+        </div>
+        <textarea id="csvPaste" class="w-full min-h-[120px] rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3" placeholder="term,definition&#10;Question,Answer"></textarea>
+        <div class="mt-2">
+          <button id="loadPaste" class="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600">Use Pasted CSV</button>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">Two columns: <b>term, definition</b>. Header optional. Quotes supported.</p>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-3 gap-8">
+      <div class="lg:col-span-2">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-soft">
+          <div class="flex items-center justify-between mb-4">
+            <h2 id="counter" class="text-lg font-semibold">0 / 0</h2>
+            <div class="text-xs text-gray-500 dark:text-gray-400">Shortcuts: <span class="kbd border px-2 py-1 rounded">1–4</span> choose • <span class="kbd border px-2 py-1 rounded">N</span> next • <span class="kbd border px-2 py-1 rounded">D</span> don't know</div>
+          </div>
+          <div id="question" class="text-2xl lg:text-3xl font-bold min-h-[3.2rem]">No deck loaded</div>
+          <div class="text-sm text-gray-600 dark:text-gray-400 mb-3">Choose an answer</div>
+          <div id="answers" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+          <div class="mt-4 flex flex-wrap gap-2 items-center justify-between">
+            <div class="flex items-center gap-2 text-sm">
+              <span id="mastery" class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">0 mastered</span>
+              <span id="left" class="px-2 py-1 rounded-full bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">0 left</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button id="dont" class="px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600">Don't know</button>
+              <button id="next" class="px-3 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600" disabled>Next</button>
+            </div>
+          </div>
+          <div id="feedback" class="text-sm font-medium mt-3 h-5"></div>
+        </div>
+      </div>
+      <div class="space-y-6">
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-soft">
+          <h3 class="font-semibold mb-2">Tips</h3>
+          <ul class="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <li>CSV must have two columns: term, definition (header optional).</li>
+            <li>Mode “Mixed” alternates which side is the prompt.</li>
+            <li>“Don’t know” shows the answer and re-queues the card.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ---------- Theme ----------
+const htmlEl=document.documentElement;
+(function initTheme(){
+  const saved=localStorage.getItem('learn_theme');
+  const prefers=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const th=saved || (prefers ? 'dark':'light');
+  htmlEl.classList.toggle('dark', th==='dark');
+})();
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const dark=htmlEl.classList.toggle('dark');
+  localStorage.setItem('learn_theme', dark?'dark':'light');
+});
+
+// ---------- Elements ----------
+const deckNameEl=document.getElementById('deckName');
+const csvFile=document.getElementById('csvFile');
+const pasteBtn=document.getElementById('pasteBtn');
+const pasteWrap=document.getElementById('pasteWrap');
+const closePaste=document.getElementById('closePaste');
+const csvPaste=document.getElementById('csvPaste');
+const loadPaste=document.getElementById('loadPaste');
+const saveBtn=document.getElementById('saveBtn');
+const clearBtn=document.getElementById('clearBtn');
+
+const answersEl=document.getElementById('answers');
+const qEl=document.getElementById('question');
+const counterEl=document.getElementById('counter');
+const masteryEl=document.getElementById('mastery');
+const leftEl=document.getElementById('left');
+const nextBtn=document.getElementById('next');
+const dontBtn=document.getElementById('dont');
+const modeSel=document.getElementById('mode');
+const resetBtn=document.getElementById('reset');
+const shuffleBtn=document.getElementById('shuffleBtn');
+const feedbackEl=document.getElementById('feedback');
+
+// ---------- Storage ----------
+const KEY_DECK="learn_mc_csv_deck_tailwind_v2";
+
+let PAIRS = loadDeck() || [];
+let queue=[], mastered=new Set(), current=null, side="mixed", showing=false;
+
+// ---------- Utils ----------
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+function normalize(s){ return (s||"").toString().trim(); }
+function feedback(msg, type='info'){
+  feedbackEl.textContent = msg;
+  feedbackEl.className = "text-sm font-medium mt-3 h-5 " + (type==='success' ? 'text-green-600 dark:text-green-400' : type==='error' ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400');
+  clearTimeout(feedback._t); feedback._t=setTimeout(()=>{ feedbackEl.textContent=""; }, 1600);
+}
+
+// ---------- CSV (robust) ----------
+// Handles: CRLF/CR, UTF-8 BOM, quoted fields, extra columns, empty rows.
+// If more than 2 columns, takes the first two non-empty fields.
+function parseCSV(text){
+  // Remove UTF-8 BOM if present
+  if(text.charCodeAt(0)===0xFEFF){ text = text.slice(1); }
+  const rows=[]; let i=0, field="", row=[], inQuotes=false;
+  function pushField(){ row.push(field); field=""; }
+  function pushRow(){ rows.push(row); row=[]; }
+  while(i<text.length){
+    const c=text[i];
+    if(inQuotes){
+      if(c==='"'){
+        if(text[i+1]==='"'){ field+='"'; i++; }
+        else { inQuotes=false; }
+      } else { field+=c; }
+    } else {
+      if(c==='"'){ inQuotes=true; }
+      else if(c===','){ pushField(); }
+      else if(c==='\n'){ pushField(); pushRow(); }
+      else if(c==='\r'){ /* swallow CR; will handle CRLF via the \n case */ }
+      else { field+=c; }
+    }
+    i++;
+  }
+  if(field.length>0 || row.length>0){ pushField(); pushRow(); }
+  // filter out empty rows
+  return rows.filter(r=> r.some(x=> normalize(x)!=="") );
+}
+
+function csvToPairs(text){
+  const rows = parseCSV(text);
+  if(rows.length===0) return [];
+  // Detect header
+  let start=0;
+  const h0=(rows[0][0]||"").toLowerCase(), h1=(rows[0][1]||"").toLowerCase();
+  if(h0.includes("term")||h1.includes("def")) start=1;
+
+  const out=[];
+  for(let r=start;r<rows.length;r++){
+    // keep only first two non-empty fields
+    let first="", second="";
+    for(let k=0;k<rows[r].length;k++){
+      if(first===""){ if(normalize(rows[r][k])!==""){ first = normalize(rows[r][k]); continue; } }
+      else if(second===""){ if(normalize(rows[r][k])!==""){ second = normalize(rows[r][k]); break; } }
+    }
+    if(first && second) out.push([first, second]);
+  }
+  return out;
+}
+
+// ---------- Core Flow ----------
+function setDeck(pairs, name="Custom Deck"){
+  PAIRS = pairs.filter(r=> normalize(r[0]) && normalize(r[1]) );
+  deckNameEl.textContent = "Deck: " + name;
+  reset(true);
+}
+function saveDeck(){
+  localStorage.setItem(KEY_DECK, JSON.stringify({pairs:PAIRS, name:deckNameEl.textContent.replace(/^Deck:\\s*/,"")}));
+  feedback("Deck saved", 'success');
+}
+function loadDeck(){
+  try{
+    const o = JSON.parse(localStorage.getItem(KEY_DECK)||"null");
+    if(o && Array.isArray(o.pairs) && o.pairs.length>0) {
+      deckNameEl && (deckNameEl.textContent = "Deck: " + (o.name || "Saved Deck"));
+      return o.pairs;
+    }
+  }catch(e){}
+  return null;
+}
+function clearDeck(){
+  localStorage.removeItem(KEY_DECK);
+  feedback("Saved deck cleared");
+}
+
+function updateProgress(){
+  masteryEl.textContent = `${mastered.size} mastered`;
+  leftEl.textContent = `${queue.length} left`;
+}
+
+function pickNext(){
+  if(queue.length===0){
+    qEl.textContent="Deck complete. Use Reset or Shuffle to practice again.";
+    answersEl.innerHTML="";
+    nextBtn.disabled=true; dontBtn.disabled=true;
+    counterEl.textContent=`${PAIRS.length} / ${PAIRS.length}`;
+    updateProgress();
+    return;
+  }
+  current=queue[0];
+  const m=modeSel.value;
+  side=(m==="mixed")?(Math.random()<0.5?"def":"term"):m;
+  renderQuestion(current, side);
+  nextBtn.disabled=true; dontBtn.disabled=false;
+}
+function renderQuestion(idx, side){
+  const [term,def]=PAIRS[idx];
+  const prompt=side==="def"?def:term;
+  const correct=side==="def"?term:def;
+  const pool=PAIRS.map(p=> side==="def"?p[0]:p[1]);
+  const options=[correct,...shuffle(pool.filter(x=>x!==correct)).slice(0,3)];
+  shuffle(options);
+  qEl.textContent=prompt;
+  answersEl.innerHTML="";
+  options.forEach((opt,i)=>{
+    const b=document.createElement("button");
+    b.className="text-left w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition shadow-sm";
+    b.innerHTML=`<span class="font-semibold mr-2">${i+1}.</span>${opt}`;
+    b.onclick=()=>choose(opt,correct,b);
+    answersEl.appendChild(b);
+  });
+  answersEl.dataset.correct=correct;
+  counterEl.textContent=`${(PAIRS.length-queue.length)+1} / ${PAIRS.length}`;
+  showing=false;
+}
+function choose(opt,correct,btn){
+  if(showing) return;
+  showing=true;
+  [...answersEl.children].forEach(b=>b.disabled=true);
+  if(opt===correct){
+    btn.classList.add("ring-2","ring-green-400","border-green-400");
+    feedback("Correct","success");
+    mastered.add(current);
+    queue.shift();
+  }else{
+    btn.classList.add("ring-2","ring-red-400","border-red-400");
+    [...answersEl.children].forEach(b=>{ if(b.textContent.includes(correct)) b.classList.add("ring-2","ring-green-400","border-green-400"); });
+    const cur=queue.shift();
+    queue.splice(Math.min(4,queue.length),0,cur);
+    feedback("Not yet");
+  }
+  nextBtn.disabled=false; dontBtn.disabled=true;
+  updateProgress();
+}
+function dontKnow(){
+  if(showing) return;
+  showing=true;
+  const correct=answersEl.dataset.correct;
+  [...answersEl.children].forEach(b=>b.disabled=true);
+  [...answersEl.children].forEach(b=>{ if(b.textContent.includes(correct)) b.classList.add("ring-2","ring-green-400","border-green-400"); });
+  const cur=queue.shift();
+  queue.splice(Math.min(4,queue.length),0,cur);
+  feedback("Study this one again");
+  nextBtn.disabled=false; dontBtn.disabled=true;
+  updateProgress();
+}
+function reset(initial=false){
+  mastered.clear();
+  queue = shuffle([...Array(PAIRS.length).keys()]);
+  if(PAIRS.length===0){
+    qEl.textContent="No deck loaded";
+    answersEl.innerHTML="";
+    counterEl.textContent="0 / 0";
+    updateProgress();
+    return;
+  }
+  pickNext();
+  updateProgress();
+  if(!initial) feedback("Reset");
+}
+
+// ---------- Events ----------
+dontBtn.onclick=dontKnow;
+nextBtn.onclick=pickNext;
+resetBtn.onclick=()=>reset();
+shuffleBtn.onclick=()=>{ queue=shuffle(queue); pickNext(); };
+modeSel.onchange=()=>pickNext();
+
+document.addEventListener("keydown",(e)=>{
+  if(showing){ if(e.key.toLowerCase()==='n'){ e.preventDefault(); pickNext(); } return; }
+  if(['1','2','3','4'].includes(e.key)){
+    const idx=Number(e.key)-1;
+    const btn=answersEl.children[idx];
+    if(btn){ e.preventDefault(); btn.click(); }
+  }else if(e.key.toLowerCase()==='d'){ e.preventDefault(); dontKnow(); }
+});
+
+csvFile.addEventListener("change",(e)=>{
+  const file=e.target.files[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const pairs=csvToPairs(reader.result);
+    if(pairs.length){
+      setDeck(pairs,file.name.replace(/\.[^.]+$/,""));
+      feedback(`Loaded ${pairs.length} rows`,'success');
+    }else feedback("No valid rows found (need two columns).","error");
+  };
+  reader.readAsText(file);
+});
+pasteBtn.onclick=()=>{ pasteWrap.classList.remove('hidden'); csvPaste.focus(); };
+closePaste.onclick=()=>{ pasteWrap.classList.add('hidden'); csvPaste.value=''; };
+loadPaste.onclick=()=>{
+  const pairs=csvToPairs(csvPaste.value||"");
+  if(pairs.length){
+    setDeck(pairs,"Pasted CSV");
+    feedback(`Loaded ${pairs.length} rows`,'success');
+    pasteWrap.classList.add('hidden'); csvPaste.value='';
+  }else feedback("No valid rows found (need two columns).","error");
+};
+
+// ---------- Init ----------
+reset(true);
+</script>
+</body>
+</html>
