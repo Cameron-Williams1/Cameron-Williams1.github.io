@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Availability</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f5f4f0;
+    color: #1a1a18;
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 28px; font-weight: 500; margin-bottom: 6px; }
+  .subtitle { font-size: 15px; color: #5f5e5a; margin-bottom: 1.5rem; }
+  .legend { display: flex; gap: 18px; margin-bottom: 1.25rem; }
+  .legend-item { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #5f5e5a; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-busy { background: #D85A30; }
+  .dot-free { background: #1D9E75; }
+
+  .grid-wrap { border: 1px solid #d3d1c7; border-radius: 12px; overflow: hidden; background: #fff; }
+  .grid { display: grid; grid-template-columns: 70px repeat(5, 1fr); }
+  .cell { border-right: 0.5px solid #d3d1c7; border-bottom: 0.5px solid #d3d1c7; }
+  .cell:last-child { border-right: none; }
+  .corner { background: #f1efe8; }
+  .day-header {
+    background: #f1efe8;
+    padding: 10px 6px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #5f5e5a;
+    border-bottom: 1px solid #d3d1c7;
+  }
+  .time-label {
+    background: #f1efe8;
+    font-size: 11px;
+    color: #888780;
+    text-align: right;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    min-height: 36px;
+  }
+  .slot {
+    min-height: 36px;
+    background: #fff;
+    position: relative;
+  }
+  .slot.busy-cell { background: #FAECE7; }
+  .class-block {
+    position: absolute;
+    inset: 3px;
+    background: #D85A30;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    color: #fff;
+    text-align: center;
+    line-height: 1.3;
+    padding: 2px 4px;
+  }
+
+  .summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 1.25rem; }
+  .day-card {
+    background: #fff;
+    border: 0.5px solid #d3d1c7;
+    border-radius: 8px;
+    padding: 10px;
+  }
+  .day-card-name { font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #1a1a18; }
+  .time-tag {
+    display: block;
+    font-size: 11px;
+    background: #FAECE7;
+    color: #993C1D;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-bottom: 3px;
+  }
+  .free-tag {
+    display: block;
+    font-size: 11px;
+    background: #E1F5EE;
+    color: #0F6E56;
+    border-radius: 99px;
+    padding: 2px 8px;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  @media (max-width: 520px) {
+    .summary { grid-template-columns: repeat(3, 1fr); }
+    h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>My Availability</h1>
+  <p class="subtitle">These are times I have classes, I can schedule meetings during times I am not in class.</p>
+
+  <div class="legend">
+    <div class="legend-item"><div class="dot dot-busy"></div> In class (unavailable)</div>
+    <div class="legend-item"><div class="dot dot-free"></div> Free</div>
+  </div>
+
+  <div class="grid-wrap"><div class="grid" id="schedule"></div></div>
+  <div class="summary" id="summary"></div>
+</div>
+
+<script>
+const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+const busyBlocks = {
+  Mon: [{start: 10.5, end: 11.333, label: '10:30–11:20'}, {start: 14.5, end: 15.333, label: '2:30–3:20'}],
+  Tue: [{start: 10.5, end: 11.333, label: '10:30–11:20'}, {start: 13.5, end: 14.75, label: '1:30–2:45'}],
+  Wed: [{start: 10.5, end: 11.333, label: '10:30–11:20'}, {start: 14.5, end: 15.333, label: '2:30–3:20'}],
+  Thu: [{start: 13.5, end: 14.75, label: '1:30–2:45'}],
+  Fri: [{start: 10.5, end: 11.333, label: '10:30–11:20'}, {start: 14.5, end: 15.333, label: '2:30–3:20'}],
+};
+
+const slots = [];
+for (let h = 8; h <= 17; h++) { slots.push(h); slots.push(h + 0.5); }
+
+function isBusy(day, t) {
+  return (busyBlocks[day] || []).some(b => t >= b.start && t < b.end);
+}
+function blockStart(day, t) {
+  return (busyBlocks[day] || []).find(b => Math.abs(b.start - t) < 0.01);
+}
+function blockSpan(b) { return Math.round((b.end - b.start) / 0.5); }
+function fmt(h) {
+  const hr = Math.floor(h), min = h % 1 === 0.5 ? '30' : '00';
+  const ampm = hr >= 12 ? 'pm' : 'am';
+  const h12 = hr > 12 ? hr - 12 : hr === 0 ? 12 : hr;
+  return `${h12}:${min}${ampm}`;
+}
+
+const grid = document.getElementById('schedule');
+const skip = {};
+
+// Header row
+const corner = document.createElement('div');
+corner.className = 'corner cell day-header';
+grid.appendChild(corner);
+days.forEach(d => {
+  const dh = document.createElement('div');
+  dh.className = 'day-header cell';
+  dh.textContent = d;
+  grid.appendChild(dh);
+});
+
+slots.forEach((t, si) => {
+  const tl = document.createElement('div');
+  tl.className = 'time-label cell';
+  tl.textContent = fmt(t);
+  grid.appendChild(tl);
+
+  days.forEach(day => {
+    const key = `${day}-${si}`;
+    if (skip[key]) return;
+
+    const b = blockStart(day, t);
+    if (b) {
+      const span = blockSpan(b);
+      const cell = document.createElement('div');
+      cell.className = 'slot busy-cell cell';
+      cell.style.gridRow = `span ${span}`;
+      cell.style.minHeight = `${span * 36}px`;
+      const inner = document.createElement('div');
+      inner.className = 'class-block';
+      inner.textContent = b.label;
+      cell.appendChild(inner);
+      grid.appendChild(cell);
+      for (let s = 1; s < span; s++) skip[`${day}-${si + s}`] = true;
+    } else if (!isBusy(day, t)) {
+      const cell = document.createElement('div');
+      cell.className = 'slot cell';
+      grid.appendChild(cell);
+    }
+  });
+});
+
+// Summary
+const sumEl = document.getElementById('summary');
+days.forEach(day => {
+  const card = document.createElement('div');
+  card.className = 'day-card';
+  const name = document.createElement('div');
+  name.className = 'day-card-name';
+  name.textContent = day;
+  card.appendChild(name);
+  const blocks = busyBlocks[day] || [];
+  if (blocks.length === 0) {
+    const tag = document.createElement('span');
+    tag.className = 'free-tag';
+    tag.textContent = 'Fully free';
+    card.appendChild(tag);
+  } else {
+    blocks.forEach(b => {
+      const tag = document.createElement('span');
+      tag.className = 'time-tag';
+      tag.textContent = b.label;
+      card.appendChild(tag);
+    });
+  }
+  sumEl.appendChild(card);
+});
+</script>
+</body>
+</html>
